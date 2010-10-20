@@ -3,7 +3,7 @@
 # ease displaying AR informations, help create scaffolded show and index
 # pages.
 #
-# @author Boruta Mirosław
+# @author Boruta Miros??aw
 
 require File.join(File.dirname(__FILE__), *%w[attrtastic railtie]) if defined?(::Rails::Railtie)
 
@@ -286,16 +286,15 @@ module Attrtastic
         value_content = template.content_tag(:span, value, :class => html_value_class)
 
         if value.present? or options[:display_empty]
-          content = [ label_content, value_content ].join
+          content = label_content + value_content
           template.content_tag(:li, content, :class => html_class)
         end
       else
-        template.concat(template.tag(:li, {:class => html_class}, true))
-        template.concat(label_content)
-        template.concat(template.tag(:span, {:class => html_value_class}, true))
-        yield
-        template.concat("</span>")
-        template.concat("</li>")
+        output = template.tag(:li, {:class => html_class}, true)
+        output << label_content
+        output << template.tag(:span, {:class => html_value_class}, true)
+        output << template.capture { yield }
+        output << "</span></li>".html_safe
       end
     end
 
@@ -307,26 +306,25 @@ module Attrtastic
       html_class = [ "attributes", options[:html].delete(:class) ].compact.join(" ")
       html_header_class = [ "legend", options[:html].delete(:header_class) ].compact.join(" ")
 
-      template.concat(template.tag(:div, {:class => html_class}, true))
+      output = template.tag(:div, {:class => html_class}, true)
 
       header = options[:name]
 
       if header.present?
-        template.concat(template.content_tag(:div, header, :class => html_header_class))
+        output << template.content_tag(:div, header, :class => html_header_class)
       end
 
       if block_given?
-        template.concat(template.tag(:ol, {}, true))
-        yield(new_builder)
-        template.concat("</ol>")
+        output << template.tag(:ol, {}, true)
+        output << template.capture { yield(new_builder) }
+        output << "</ol>".html_safe
       elsif methods.present?
-        template.concat(template.tag(:ol, {}, true))
-        attrs = methods.map {|method| new_builder.attribute(method, options)}.compact.join
-        template.concat(attrs)
-        template.concat("</ol>")
+        output << template.tag(:ol, {}, true)
+        output <<  methods.map {|method| new_builder.attribute(method, options)}.compact.join
+        output << "</ol>".html_safe
       end
 
-      template.concat("</div>")
+      output << "</div>".html_safe
     end
 
     def label_for_attribute(method)
@@ -390,9 +388,9 @@ module Attrtastic
 
       html_class = [ "attrtastic", record.class.to_s.underscore, options[:html][:class] ].compact.join(" ")
 
-      concat(tag(:div, { :class => html_class}, true))
-      yield SemanticAttributesBuilder.new(record, self) if block_given?
-      concat("</div>")
+      output = tag(:div, { :class => html_class}, true)
+      output << capture { yield(SemanticAttributesBuilder.new(record, self)) } if block_given?
+      output << "</div>".html_safe
     end
 
   end
